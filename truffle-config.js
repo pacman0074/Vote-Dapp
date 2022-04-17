@@ -46,7 +46,7 @@ module.exports = {
    },
    ropsten: {
      provider: function() {
-       return new HDWalletProvider(process.env.MNEMONIC, process.env.URLRPCROPSTEN)
+       return new HDWalletProvider(process.env.MNEMONIC, process.env.URLRPCROPSTEN) 
      },
      network_id: 3
    }
