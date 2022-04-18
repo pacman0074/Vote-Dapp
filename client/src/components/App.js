@@ -1,32 +1,34 @@
 import React, { Component } from "react";
-import 'bootstrap/dist/css/bootstrap.min.css';
-import Button from 'react-bootstrap/Button';
-import Form from 'react-bootstrap/Form';
-import Card from 'react-bootstrap/Card';
-import ListGroup from 'react-bootstrap/ListGroup';
-import Table from 'react-bootstrap/Table';
-import Whitelist from "./contracts/Whitelist.json";
-import getWeb3 from "./getWeb3";
+import Voting from "../contracts/Voting.json"
+import getWeb3 from "../getWeb3";
 import "../styles/App.css";
+import 'bootstrap/dist/css/bootstrap.min.css';
+import StartingPage from "./StartingPage";
+import RegistrationVoters from "./RegistrationVoters";
 
 class App extends Component {
-  state = { web3: null, accounts: null, contract: null, whitelist: null };
+  state = { web3: null, accounts: null, contract: null, workflowStatus: -1, whitelist: [] };
 
   componentWillMount = async () => {
     try {
       // Récupérer le provider web3
-      const web3 = await getWeb3();
-  
-      // Utiliser web3 pour récupérer les comptes de l’utilisateur (MetaMask dans notre cas) 
-      const accounts = await web3.eth.getAccounts();
+     const web3 = await getWeb3();
+ 
+     // Utiliser web3 pour récupérer les comptes de l’utilisateur (MetaMask dans notre cas) 
+     const accounts = await web3.eth.getAccounts();
 
-      // Récupérer l’instance du smart contract “Whitelist” avec web3 et les informations du déploiement du fichier (client/src/contracts/Whitelist.json)
-      const deployedNetwork = Whitelist.networks[3];
-  
-      const instance = new web3.eth.Contract(
-        Whitelist.abi,
-        "0x968E3E2c2250eC61B78846f400E0EC07C67cB424",
-      );
+     // Récupérer l’instance du smart contract “Whitelist” avec web3 et les informations du déploiement du fichier (client/src/contracts/Whitelist.json)
+     const networkId = await web3.eth.net.getId();
+     const deployedNetwork = Voting.networks[networkId];
+ 
+     const instance = new web3.eth.Contract(
+       Voting.abi,
+       deployedNetwork && deployedNetwork.address,
+     ); 
+     instance.handleRevert = true;
+     console.log(instance)
+     
+    
 
       // Set web3, accounts, and contract to the state, and then proceed with an
       // example of interacting with the contract's methods.
@@ -41,75 +43,103 @@ class App extends Component {
   };
 
   runInit = async() => {
-    const { accounts, contract } = this.state;
-  
-    // récupérer la liste des comptes autorisés
-    const whitelist = await contract.methods.getAddresses().call();
+    const { contract } = this.state;
+    // récupérer le statut du workflow
+    const workflowStatus = await contract.methods.currentStatus().call();
     // Mettre à jour le state 
-    this.setState({ whitelist: whitelist });
-  }; 
+    this.setState({ workflowStatus: workflowStatus - 1});
+  }
 
-  whitelist = async() => {
+
+  refreshWhitelist = async() => {
+    const {contract} = this.state
+    await contract.methods.countVoter().call( async(err, countVoters) => {
+      if(err) {
+        alert (err);
+      } 
+      else {
+        
+        const listeVoters = [];
+        for ( let i =0 ; i <= countVoters ; i++ ){
+          let voter = await contract.methods.Voteraddresse(i).call()
+          listeVoters.push(voter)
+          console.log('dans la boucle')
+        }
+        console.log('juste avant le setstate')
+        this.setState({ whitelist : listeVoters});
+      } 
+    })
+  }
+
+
+  startVotersRegistration = async() => {
+    // Mettre à jour le state 
+    
+    this.setState({ workflowStatus: 1});
+    //this.refreshWhitelist();
+    
+  }
+
+  startProposalsRegistration = async() => {
+    const {accounts, contract} = this.state
+    // commencer l'enregistrement des propositions
+    await contract.methods.StartProposalsRegistration().send({from : accounts[0]});
+    
+    const workflowStatus = await contract.methods.currentStatus().call();
+    this.setState({ workflowStatus: workflowStatus + 1});
+    
+    
+  }
+
+
+  addVoters = async() => {
     const { accounts, contract } = this.state;
     const address = this.address.value;
     
     // Interaction avec le smart contract pour ajouter un compte 
-    await contract.methods.whitelist(address).send({from: accounts[0]});
-    // Récupérer la liste des comptes autorisés
-    this.runInit();
+    await contract.methods.addVoter(address).send({from: accounts[0]}, async(error) => {
+      if(error){
+        let errorMessageString = JSON.stringify(error.message).toString()
+        let indexStart = errorMessageString.indexOf('VM Exception')
+
+        let message = errorMessageString.substring(indexStart)
+        let indexEnd = message.indexOf('\\\"')
+
+        let errorMessage = message.substring(0,indexEnd)
+        alert('Transaction failed : '+errorMessage);
+      
+      } else {
+        this.refreshWhitelist();
+      } 
+
+    })
+
+  }
+
+
+  addProposals = async() => {
+    const { accounts, contract } = this.state;
   }
  
 
   render() {
-    const { whitelist } = this.state;
+    console.log('tototototo')
+    const  {whitelist, workflowStatus} = this.state;
+    
+    
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
     return (
       <div className="App">
         <div>
-            <h2 className="text-center">Système d'une liste blanche</h2>
+            <h2 className="text-center">Système de vote</h2>
             <hr></hr>
             <br></br>
         </div>
-        <div style={{display: 'flex', justifyContent: 'center'}}>
-          <Card style={{ width: '50rem' }}>
-            <Card.Header><strong>Liste des comptes autorisés</strong></Card.Header>
-            <Card.Body>
-              <ListGroup variant="flush">
-                <ListGroup.Item>
-                  <Table striped bordered hover>
-                    <thead>
-                      <tr>
-                        <th>@</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {whitelist !== null && 
-                        whitelist.map((a) => <tr><td>{a}</td></tr>)
-                      }
-                    </tbody>
-                  </Table>
-                </ListGroup.Item>
-              </ListGroup>
-            </Card.Body>
-          </Card>
-        </div>
-        <br></br>
-        <div style={{display: 'flex', justifyContent: 'center'}}>
-          <Card style={{ width: '50rem' }}>
-            <Card.Header><strong>Autoriser un nouveau compte</strong></Card.Header>
-            <Card.Body>
-              <Form.Group controlId="formAddress">
-                <Form.Control type="text" id="address"
-                ref={(input) => { this.address = input }}
-                />
-              </Form.Group>
-              <Button onClick={ this.whitelist } variant="dark" > Autoriser </Button>
-            </Card.Body>
-          </Card>
-          </div>
-        <br></br>
+        <StartingPage  workflowStatus={workflowStatus} startVotersRegistration={this.startVotersRegistration} />
+        <RegistrationVoters owner={this.owner} startProposalsRegistration={this.startProposalsRegistration}  workflowStatus={workflowStatus} whitelistVoters={whitelist} addVoters={this.addVoters} 
+        address={ address => this.address = address}/>
       </div>
     );
   }
