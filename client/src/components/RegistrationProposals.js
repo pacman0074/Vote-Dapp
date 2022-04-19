@@ -5,9 +5,11 @@ import Card from 'react-bootstrap/Card';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Table from 'react-bootstrap/Table';
 
-export default function RegistrationProposals ({whitelistVoters, addVoters, address, workflowStatus,startProposalsRegistration}) {
+export default function RegistrationProposals ({workflowStatus, listProposals, registerProposals, proposal}) {
 
-    if(workflowStatus == 1) {
+    
+
+    if(workflowStatus == 2) {
         return (
             <div>
                 <div className='dv-registration-voters-container'>
@@ -24,8 +26,8 @@ export default function RegistrationProposals ({whitelistVoters, addVoters, addr
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {whitelistVoters !== null && 
-                                    whitelistVoters.map((a) => <tr><td>{a}</td></tr>)
+                                {listProposals !== null && 
+                                    listProposals.map((a) => <tr><td>{a}</td></tr>)
                                 }
                                 </tbody>
                             </Table>
@@ -39,18 +41,18 @@ export default function RegistrationProposals ({whitelistVoters, addVoters, addr
                     <Card style={{ width: '50rem' }}>
                         <Card.Header><strong>Ajouter une nouvelle proposition</strong></Card.Header>
                         <Card.Body>
-                        <Form.Group controlId="formAddress">
-                            <Form.Control type="text" id="address"
-                            ref={ input => address(input) }
+                        <Form.Group controlId="formProposal">
+                            <Form.Control type="text" id="proposal"
+                            ref={ input => proposal(input) }
                             />
                         </Form.Group>
-                        <Button style={{ marginTop : '15px'}} className='dv-registration-voters-button' onClick={ addVoters } variant="dark" > Autoriser </Button>
+                        <Button style={{ marginTop : '15px'}} className='dv-registration-voters-button' onClick={ registerProposals } variant="dark" > Enregistrer une proposition </Button>
                         </Card.Body>
                     </Card>
                     </div>
                     <br></br>
                 </div>
-                <Button onClick={startProposalsRegistration} style={{marginTop : '10px'}  } >Commencer l'enregistrement des propositions</Button>
+                <Button onClick={console.log('startProposalRegistration')} style={{marginTop : '10px'}  } >Commencer l'enregistrement des propositions</Button>
             </div>
         )
     } else return null

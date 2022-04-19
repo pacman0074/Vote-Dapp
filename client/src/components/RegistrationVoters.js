@@ -1,13 +1,69 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Table from 'react-bootstrap/Table';
 
-export default function RegistrationVoters ({whitelistVoters, addVoters, address, workflowStatus,startProposalsRegistration}) {
+export default function RegistrationVoters ({contract, workflowStatus, startProposalsRegistration, accounts}) {
+
+    const [whitelist, setWhitelist] = useState([]);
+    var Address = 0;
+
+
+    const refreshWhitelist = async() => {
+        // Récupérer le nombre d'élécteur de la whitelist
+        await contract.methods.countVoter().call( async(err, countVoters) => {
+          if(err) {
+            alert (err);
+          } 
+    
+          else {
+            const listeVoters = [];
+            // Récupérer la liste d'élécteur
+            for ( let i =0 ; i < countVoters ; i++ ){
+              let voter = await contract.methods.Voteraddresse(i).call();
+              listeVoters.push(voter)
+            }
+            // Mettre à jour le state sur la liste des élécteurs
+            setWhitelist(listeVoters)
+          } 
+        })
+    }
+
+
+    const addVoters = async() => {
+        const address = Address.value;
+        
+        // Interaction avec le smart contract pour ajouter un compte 
+        await contract.methods.addVoter(address).send({from: accounts[0]}, async(error) => {
+          if(error){
+            // Récupérer le message de l'erreur et la position du début de l'erreur 'VM Exception'
+            let errorMessageString = JSON.stringify(error.message).toString()
+            let indexStart = errorMessageString.indexOf('VM Exception')
+    
+            //Récupérer le message de l'erreur à partir de la chaine 'VM Exception' et la position de la fin du message d'erreur
+            let message = errorMessageString.substring(indexStart)
+            let indexEnd = message.indexOf('\\\"')
+    
+            //Récupération de l'erreur
+            let errorMessage = message.substring(0,indexEnd)
+            alert('Transaction failed : '+errorMessage);
+          
+          } else {
+            //Mettre à jour la liste des élécteurs 
+            refreshWhitelist();
+          } 
+    
+        })
+    
+      }
+
+      
+    useEffect(() => refreshWhitelist(), [])
 
     if(workflowStatus == 1) {
+        
         return (
             <div>
                 <div className='dv-registration-voters-container'>
@@ -24,8 +80,8 @@ export default function RegistrationVoters ({whitelistVoters, addVoters, address
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {whitelistVoters !== null && 
-                                    whitelistVoters.map((a) => <tr><td>{a}</td></tr>)
+                                {whitelist !== null && 
+                                    whitelist.map((a) => <tr><td>{a}</td></tr>)
                                 }
                                 </tbody>
                             </Table>
@@ -41,7 +97,7 @@ export default function RegistrationVoters ({whitelistVoters, addVoters, address
                         <Card.Body>
                         <Form.Group controlId="formAddress">
                             <Form.Control type="text" id="address"
-                            ref={ input => address(input) }
+                            ref={ input => Address = input }
                             />
                         </Form.Group>
                         <Button style={{ marginTop : '15px'}} className='dv-registration-voters-button' onClick={ addVoters } variant="dark" > Autoriser </Button>
@@ -50,7 +106,7 @@ export default function RegistrationVoters ({whitelistVoters, addVoters, address
                     </div>
                     <br></br>
                 </div>
-                <Button onClick={startProposalsRegistration} style={{marginTop : '10px'}  } >Commencer l'enregistrement des propositions</Button>
+                <Button onClick={startProposalsRegistration} style={{marginTop : '10px', marginBottom : '10px'}  } >Commencer l'enregistrement des propositions</Button>
             </div>
         )
     } else return null

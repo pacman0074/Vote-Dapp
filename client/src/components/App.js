@@ -5,9 +5,10 @@ import "../styles/App.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import StartingPage from "./StartingPage";
 import RegistrationVoters from "./RegistrationVoters";
+import RegistrationProposals from "./RegistrationProposals";
 
 class App extends Component {
-  state = { web3: null, accounts: null, contract: null, workflowStatus: -1, whitelist: [] };
+  state = { web3: null, accounts: null, contract: null, workflowStatus: -1, proposals : [] };
 
   componentWillMount = async () => {
     try {
@@ -26,7 +27,6 @@ class App extends Component {
        deployedNetwork && deployedNetwork.address,
      ); 
      instance.handleRevert = true;
-     console.log(instance)
      
     
 
@@ -46,37 +46,17 @@ class App extends Component {
     const { contract } = this.state;
     // récupérer le statut du workflow
     const workflowStatus = await contract.methods.currentStatus().call();
-    // Mettre à jour le state 
+    // Mettre à jour le workflow courant
     this.setState({ workflowStatus: workflowStatus - 1});
-  }
-
-
-  refreshWhitelist = async() => {
-    const {contract} = this.state
-    await contract.methods.countVoter().call( async(err, countVoters) => {
-      if(err) {
-        alert (err);
-      } 
-      else {
-        
-        const listeVoters = [];
-        for ( let i =0 ; i <= countVoters ; i++ ){
-          let voter = await contract.methods.Voteraddresse(i).call()
-          listeVoters.push(voter)
-          console.log('dans la boucle')
-        }
-        console.log('juste avant le setstate')
-        this.setState({ whitelist : listeVoters});
-      } 
-    })
   }
 
 
   startVotersRegistration = async() => {
     // Mettre à jour le state 
-    
     this.setState({ workflowStatus: 1});
+    // Rafraichit la liste des élécteurs
     //this.refreshWhitelist();
+    
     
   }
 
@@ -85,48 +65,36 @@ class App extends Component {
     // commencer l'enregistrement des propositions
     await contract.methods.StartProposalsRegistration().send({from : accounts[0]});
     
-    const workflowStatus = await contract.methods.currentStatus().call();
-    this.setState({ workflowStatus: workflowStatus + 1});
+    // Mettre à jour le state sur le statut des workflows
+    const workflowStatus = parseInt( await contract.methods.currentStatus().call()) + 1;
+    
+    console.log('juste avant le setstate = '+workflowStatus)
+    this.setState({ workflowStatus: workflowStatus});
     
     
   }
 
 
-  addVoters = async() => {
-    const { accounts, contract } = this.state;
-    const address = this.address.value;
-    
-    // Interaction avec le smart contract pour ajouter un compte 
-    await contract.methods.addVoter(address).send({from: accounts[0]}, async(error) => {
-      if(error){
-        let errorMessageString = JSON.stringify(error.message).toString()
-        let indexStart = errorMessageString.indexOf('VM Exception')
+  registerProposals = async() => {
+    const { accounts, contract, whitelist } = this.state;
+    const proposal = this.proposal.value;
 
-        let message = errorMessageString.substring(indexStart)
-        let indexEnd = message.indexOf('\\\"')
+    await contract.methods.registerProposal(proposal).send({from : accounts[0]});
 
-        let errorMessage = message.substring(0,indexEnd)
-        alert('Transaction failed : '+errorMessage);
-      
-      } else {
-        this.refreshWhitelist();
-      } 
+    const listProposal = []
+    for (let i = 0; i < whitelist.length(); i++){
+      let voter = await contract.methods.whitelist(whitelist[i]).call()
+      let proposal = await contract.methods.proposalList(voter.votedProposalId).call()
+      listProposal.push(proposal.description)
+    }
+    this.setState({ proposals : listProposal})
 
-    })
-
-  }
-
-
-  addProposals = async() => {
-    const { accounts, contract } = this.state;
   }
  
 
   render() {
-    console.log('tototototo')
-    const  {whitelist, workflowStatus} = this.state;
-    
-    
+    const  {whitelist, proposals ,workflowStatus, contract} = this.state;
+   
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
@@ -138,8 +106,9 @@ class App extends Component {
             <br></br>
         </div>
         <StartingPage  workflowStatus={workflowStatus} startVotersRegistration={this.startVotersRegistration} />
-        <RegistrationVoters owner={this.owner} startProposalsRegistration={this.startProposalsRegistration}  workflowStatus={workflowStatus} whitelistVoters={whitelist} addVoters={this.addVoters} 
-        address={ address => this.address = address}/>
+        <RegistrationVoters accounts={this.state.accounts}contract={contract} /*owner={this.owner}*/ startProposalsRegistration={this.startProposalsRegistration}  workflowStatus={workflowStatus} /*whitelistVoters={whitelist} addVoters={this.addVoters}*/ 
+        /*address={ address => this.address = address}*//>
+        <RegistrationProposals workflowStatus={workflowStatus} listProposals={proposals} registerProposals={this.registerProposals} proposal={  proposal => this.proposal = proposal}/>
       </div>
     );
   }
