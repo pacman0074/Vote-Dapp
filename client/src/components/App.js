@@ -10,7 +10,7 @@ import RegistrationProposals from "./RegistrationProposals";
 class App extends Component {
   state = { web3: null, accounts: null, contract: null, workflowStatus: -1, proposals : [] };
 
-  componentWillMount = async () => {
+  componentDidMount = async () => {
     try {
       // Récupérer le provider web3
      const web3 = await getWeb3();
@@ -28,11 +28,23 @@ class App extends Component {
      ); 
      instance.handleRevert = true;
      
-    
+     const workflowStatus = await instance.methods.currentStatus().call();
+     // Mettre à jour le workflow courant
+     const countVoter = await instance.methods.countVoter().call();
+ 
+     if(countVoter == 0){
+       this.setState({ web3, accounts, contract: instance, workflowStatus: workflowStatus - 1 });
+ 
+     }
+     else{
+       this.setState({ web3, accounts, contract: instance, workflowStatus: workflowStatus });
+       console.log(this.state.workflowStatus)
+ 
+     } 
 
       // Set web3, accounts, and contract to the state, and then proceed with an
       // example of interacting with the contract's methods.
-      this.setState({ web3, accounts, contract: instance }, this.runInit);
+      //this.setState({ web3, accounts, contract: instance }, this.runInit);
     } catch (error) {
       // Catch any errors for any of the above operations.
       alert(
@@ -41,15 +53,6 @@ class App extends Component {
       console.error(error);
     }
   };
-
-  runInit = async() => {
-    const { contract } = this.state;
-    // récupérer le statut du workflow
-    const workflowStatus = await contract.methods.currentStatus().call();
-    // Mettre à jour le workflow courant
-    this.setState({ workflowStatus: workflowStatus - 1});
-  }
-
 
   startVotersRegistration = async() => {
     // Mettre à jour le state 
@@ -93,7 +96,7 @@ class App extends Component {
  
 
   render() {
-    const  {whitelist, proposals ,workflowStatus, contract} = this.state;
+    const  {proposals ,workflowStatus, contract} = this.state;
    
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;

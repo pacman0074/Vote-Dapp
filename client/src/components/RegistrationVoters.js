@@ -62,7 +62,7 @@ export default function RegistrationVoters ({contract, workflowStatus, startProp
       
     useEffect(() => refreshWhitelist(), [])
 
-    if(workflowStatus == 1) {
+    if(workflowStatus == 0) {
         
         return (
             <div>

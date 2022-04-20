@@ -9,7 +9,7 @@ export default function RegistrationProposals ({workflowStatus, listProposals, r
 
     
 
-    if(workflowStatus == 2) {
+    if(workflowStatus == 1) {
         return (
             <div>
                 <div className='dv-registration-voters-container'>
