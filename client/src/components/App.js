@@ -38,7 +38,6 @@ class App extends Component {
      }
      else{
        this.setState({ web3, accounts, contract: instance, workflowStatus: workflowStatus });
-       console.log(this.state.workflowStatus)
  
      } 
 
@@ -56,7 +55,7 @@ class App extends Component {
 
   startVotersRegistration = async() => {
     // Mettre à jour le state 
-    this.setState({ workflowStatus: 1});
+    this.setState({ workflowStatus: 0});
     // Rafraichit la liste des élécteurs
     //this.refreshWhitelist();
     
@@ -69,34 +68,15 @@ class App extends Component {
     await contract.methods.StartProposalsRegistration().send({from : accounts[0]});
     
     // Mettre à jour le state sur le statut des workflows
-    const workflowStatus = parseInt( await contract.methods.currentStatus().call()) + 1;
-    
-    console.log('juste avant le setstate = '+workflowStatus)
-    this.setState({ workflowStatus: workflowStatus});
-    
-    
+    await contract.methods.currentStatus().call( (err, res) => this.setState({ workflowStatus: res}));
   }
 
 
-  registerProposals = async() => {
-    const { accounts, contract, whitelist } = this.state;
-    const proposal = this.proposal.value;
-
-    await contract.methods.registerProposal(proposal).send({from : accounts[0]});
-
-    const listProposal = []
-    for (let i = 0; i < whitelist.length(); i++){
-      let voter = await contract.methods.whitelist(whitelist[i]).call()
-      let proposal = await contract.methods.proposalList(voter.votedProposalId).call()
-      listProposal.push(proposal.description)
-    }
-    this.setState({ proposals : listProposal})
-
-  }
+  
  
 
   render() {
-    const  {proposals ,workflowStatus, contract} = this.state;
+    const  {proposals ,workflowStatus, contract, accounts} = this.state;
    
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
@@ -109,9 +89,9 @@ class App extends Component {
             <br></br>
         </div>
         <StartingPage  workflowStatus={workflowStatus} startVotersRegistration={this.startVotersRegistration} />
-        <RegistrationVoters accounts={this.state.accounts}contract={contract} /*owner={this.owner}*/ startProposalsRegistration={this.startProposalsRegistration}  workflowStatus={workflowStatus} /*whitelistVoters={whitelist} addVoters={this.addVoters}*/ 
-        /*address={ address => this.address = address}*//>
-        <RegistrationProposals workflowStatus={workflowStatus} listProposals={proposals} registerProposals={this.registerProposals} proposal={  proposal => this.proposal = proposal}/>
+        <RegistrationVoters accounts={accounts} contract={contract} startProposalsRegistration={this.startProposalsRegistration}
+          workflowStatus={workflowStatus} />
+        <RegistrationProposals accounts={accounts} contract={contract} workflowStatus={workflowStatus} />
       </div>
     );
   }

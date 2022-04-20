@@ -22,8 +22,7 @@ export default function RegistrationVoters ({contract, workflowStatus, startProp
             const listeVoters = [];
             // Récupérer la liste d'élécteur
             for ( let i =0 ; i < countVoters ; i++ ){
-              let voter = await contract.methods.Voteraddresse(i).call();
-              listeVoters.push(voter)
+              await contract.methods.Voteraddresse(i).call().then( (res) => listeVoters.push(res));
             }
             // Mettre à jour le state sur la liste des élécteurs
             setWhitelist(listeVoters)
