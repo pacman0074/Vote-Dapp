@@ -5,7 +5,7 @@ import Card from 'react-bootstrap/Card';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Table from 'react-bootstrap/Table';
 
-export default function RegistrationVoters ({contract, workflowStatus, startProposalsRegistration, accounts, getRequireError}) {
+export default function RegistrationVoters ({contract, workflowStatus, startProposalsRegistration, accounts, getRequireError, Owner}) {
 
     const [whitelist, setWhitelist] = useState([]);
     var Address = 0;
@@ -45,7 +45,7 @@ export default function RegistrationVoters ({contract, workflowStatus, startProp
       
     useEffect(() => refreshWhitelist(), [])
 
-    if(workflowStatus == 0) {
+    if(workflowStatus == 0 && accounts[0] == Owner) {
         
         return (
             <div>

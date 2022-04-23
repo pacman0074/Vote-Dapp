@@ -4,6 +4,7 @@ import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Table from 'react-bootstrap/Table';
+import Accordion from 'react-bootstrap/Accordion'
 
 export default function RegistrationProposals ({workflowStatus, accounts, contract,getRequireError, Owner}) {
 
@@ -15,8 +16,11 @@ export default function RegistrationProposals ({workflowStatus, accounts, contra
         const listProposal = [];
         const countProposal = await contract.methods.countProposal().call()
         
-        for (var i = 0; i <= countProposal; i++){
-         await contract.methods.proposalList(i).call().then( (res) => listProposal.push(res.description));
+        for (var i = 1; i <= countProposal; i++){
+            await contract.methods.proposalList(i).call((err,res) => {
+                if(!err)
+                listProposal.push(res.description)
+            })
           
         }
         
@@ -35,8 +39,6 @@ export default function RegistrationProposals ({workflowStatus, accounts, contra
    
 
     useEffect( () => refreshProposalList(), [])
-    console.log(Owner)
-    console.log(accounts[0])
     if(workflowStatus == 1 && Owner != accounts[0]) {
         return (
             <div>
@@ -48,15 +50,21 @@ export default function RegistrationProposals ({workflowStatus, accounts, contra
                         <ListGroup variant="flush">
                             <ListGroup.Item>
                             <Table striped bordered hover>
-                                <thead>
-                                <tr>
-                                    <th>@</th>
-                                </tr>
-                                </thead>
+                                <thead/>
+                               
                                 <tbody>
-                                {proposalList !== null && 
-                                    proposalList.map((a) => <tr><td>{a}</td></tr>)
-                                }
+                                {console.log(proposalList)}
+                                {proposalList.length !== 0 &&
+                                    proposalList.map((a, index) => 
+                                    <Accordion defaultActiveKey="0">
+                                        <Accordion.Item  eventKey={index} style={{border : '1px gray solid'}}>
+                                            <Accordion.Header>Proposition n°{index + 1}</Accordion.Header>
+                                            <Accordion.Body>{a}</Accordion.Body>
+                                        </Accordion.Item>
+                                    </Accordion>
+                                    )
+                                }          
+                           
                                 </tbody>
                             </Table>
                             </ListGroup.Item>
@@ -80,7 +88,6 @@ export default function RegistrationProposals ({workflowStatus, accounts, contra
                     </div>
                     <br></br>
                 </div>
-                <Button onClick={console.log('startProposalRegistration')} style={{marginTop : '10px'}  } >Commencer l'enregistrement des propositions</Button>
             </div>
         )
     } else return null
