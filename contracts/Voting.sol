@@ -35,7 +35,8 @@ contract Voting is Ownable {
     
     //list of voter's addresse
     address[] public Voteraddresse;
-    uint public countVoter ;
+    uint public countVoter;
+    uint public countProposal;
     
     //Proposal IDs counter
     using Counters for Counters.Counter;
@@ -88,6 +89,7 @@ contract Voting is Ownable {
         require(whitelist[msg.sender].isRegistered, "You're not in the whitelist !!!");
 
         proposalIDs.increment();
+        countProposal += 1;
         //whitelist[msg.sender].votedProposalId = proposalIDs.current();
         proposalList[proposalIDs.current()].description = _proposal;
         emit ProposalRegistered(proposalIDs.current()); 

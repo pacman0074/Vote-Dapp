@@ -5,7 +5,7 @@ import Card from 'react-bootstrap/Card';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Table from 'react-bootstrap/Table';
 
-export default function RegistrationVoters ({contract, workflowStatus, startProposalsRegistration, accounts}) {
+export default function RegistrationVoters ({contract, workflowStatus, startProposalsRegistration, accounts, getRequireError}) {
 
     const [whitelist, setWhitelist] = useState([]);
     var Address = 0;
@@ -22,7 +22,11 @@ export default function RegistrationVoters ({contract, workflowStatus, startProp
             const listeVoters = [];
             // Récupérer la liste d'élécteur
             for ( let i =0 ; i < countVoters ; i++ ){
-              await contract.methods.Voteraddresse(i).call().then( (res) => listeVoters.push(res));
+              await contract.methods.Voteraddresse(i).call((err,res) => {
+                if(!err) {
+                  listeVoters.push(res);
+                }
+              })
             }
             // Mettre à jour le state sur la liste des élécteurs
             setWhitelist(listeVoters)
@@ -33,30 +37,10 @@ export default function RegistrationVoters ({contract, workflowStatus, startProp
 
     const addVoters = async() => {
         const address = Address.value;
-        
         // Interaction avec le smart contract pour ajouter un compte 
-        await contract.methods.addVoter(address).send({from: accounts[0]}, async(error) => {
-          if(error){
-            // Récupérer le message de l'erreur et la position du début de l'erreur 'VM Exception'
-            let errorMessageString = JSON.stringify(error.message).toString()
-            let indexStart = errorMessageString.indexOf('VM Exception')
-    
-            //Récupérer le message de l'erreur à partir de la chaine 'VM Exception' et la position de la fin du message d'erreur
-            let message = errorMessageString.substring(indexStart)
-            let indexEnd = message.indexOf('\\\"')
-    
-            //Récupération de l'erreur
-            let errorMessage = message.substring(0,indexEnd)
-            alert('Transaction failed : '+errorMessage);
-          
-          } else {
-            //Mettre à jour la liste des élécteurs 
-            refreshWhitelist();
-          } 
-    
-        })
-    
-      }
+        await contract.methods.addVoter(address).send({from: accounts[0]}, async(error) => getRequireError(error))
+        refreshWhitelist();
+    }
 
       
     useEffect(() => refreshWhitelist(), [])

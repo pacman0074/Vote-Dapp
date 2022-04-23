@@ -6,9 +6,10 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import StartingPage from "./StartingPage";
 import RegistrationVoters from "./RegistrationVoters";
 import RegistrationProposals from "./RegistrationProposals";
+import getRequireError from "../utils/getRequireError";
 
 class App extends Component {
-  state = { web3: null, accounts: null, contract: null, workflowStatus: -1, proposals : [] };
+  state = { web3: null, accounts: null, contract: null, workflowStatus: -1, proposals : [], Owner : '' };
 
   componentDidMount = async () => {
     try {
@@ -31,13 +32,14 @@ class App extends Component {
      const workflowStatus = await instance.methods.currentStatus().call();
      // Mettre à jour le workflow courant
      const countVoter = await instance.methods.countVoter().call();
+     const owner = await instance.methods.owner().call();
  
      if(countVoter == 0){
-       this.setState({ web3, accounts, contract: instance, workflowStatus: workflowStatus - 1 });
+       this.setState({ web3, accounts, contract: instance, workflowStatus: workflowStatus - 1 , Owner : owner});
  
      }
      else{
-       this.setState({ web3, accounts, contract: instance, workflowStatus: workflowStatus });
+       this.setState({ web3, accounts, contract: instance, workflowStatus: workflowStatus, Owner : owner });
  
      } 
 
@@ -52,6 +54,16 @@ class App extends Component {
       console.error(error);
     }
   };
+
+
+  getOwner = async() => {
+    const {contract} = this.state
+    await contract.methods.owner().call( (err, res) => {
+    if(!err){
+        this.Owner = res
+    }
+  })
+}
 
   startVotersRegistration = async() => {
     // Mettre à jour le state 
@@ -76,7 +88,7 @@ class App extends Component {
  
 
   render() {
-    const  {proposals ,workflowStatus, contract, accounts} = this.state;
+    const  {proposals ,workflowStatus, contract, accounts, Owner} = this.state;
    
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
@@ -90,8 +102,8 @@ class App extends Component {
         </div>
         <StartingPage  workflowStatus={workflowStatus} startVotersRegistration={this.startVotersRegistration} />
         <RegistrationVoters accounts={accounts} contract={contract} startProposalsRegistration={this.startProposalsRegistration}
-          workflowStatus={workflowStatus} />
-        <RegistrationProposals accounts={accounts} contract={contract} workflowStatus={workflowStatus} />
+          workflowStatus={workflowStatus} getRequireError={getRequireError} />
+        <RegistrationProposals accounts={accounts} contract={contract} workflowStatus={workflowStatus} getRequireError={getRequireError} Owner={Owner} />
       </div>
     );
   }

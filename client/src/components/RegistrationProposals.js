@@ -1,63 +1,43 @@
-import React, {useState} from 'react'
+import React, {useEffect, useState} from 'react'
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Table from 'react-bootstrap/Table';
 
-export default function RegistrationProposals ({workflowStatus, accounts, contract}) {
+export default function RegistrationProposals ({workflowStatus, accounts, contract,getRequireError, Owner}) {
 
     const [proposalList, setProposalList] = useState([]);
     var Proposal = '';
 
-    const registerProposals = async() => {
-        const proposal = Proposal.value;
-    
-        await contract.methods.registerProposal(proposal).send({from: accounts[0]}, async(error) => {
-            if(error){
-              // Récupérer le message de l'erreur et la position du début de l'erreur 'VM Exception'
-              let errorMessageString = JSON.stringify(error.message).toString()
-              let indexStart = errorMessageString.indexOf('VM Exception')
-      
-              //Récupérer le message de l'erreur à partir de la chaine 'VM Exception' et la position de la fin du message d'erreur
-              let message = errorMessageString.substring(indexStart)
-              let indexEnd = message.indexOf('\\\"')
-      
-              //Récupération de l'erreur
-              let errorMessage = message.substring(0,indexEnd)
-              alert('Transaction failed : '+errorMessage);
-            
-            } else {
-              //Mettre à jour la liste des propositions
-              refreshProposalList();
-            } 
-      
-        });
 
-
-    
     const refreshProposalList = async() => {
         const listProposal = [];
-        const listeVoters = [];
-        const countVoter = await contract.methods.countVoter().call()
-        // Récupérer la liste d'élécteur
-        for ( let i =0 ; i < countVoter ; i++ ){
-          await contract.methods.Voteraddresse(i).call().then( (res) => listeVoters.push(res));
-        }
+        const countProposal = await contract.methods.countProposal().call()
         
-        for (let i = 0; i < listeVoters.length(); i++){
-          let voter = await contract.methods.whitelist(listeVoters[i]).call()
-          let proposal = await contract.methods.proposalList(voter.votedProposalId).call()
-          listProposal.push(proposal.description)
+        for (var i = 0; i <= countProposal; i++){
+         await contract.methods.proposalList(i).call().then( (res) => listProposal.push(res.description));
+          
         }
         
         setProposalList(listProposal);
     
-      }
     }
     
+    
+    const registerProposals = async() => {
+        const proposal = Proposal.value;
+    
+        await contract.methods.registerProposal(proposal).send({from: accounts[0]}, async(error) => getRequireError(error));
+        refreshProposalList();
+    }
 
-    if(workflowStatus == 1) {
+   
+
+    useEffect( () => refreshProposalList(), [])
+    console.log(Owner)
+    console.log(accounts[0])
+    if(workflowStatus == 1 && Owner != accounts[0]) {
         return (
             <div>
                 <div className='dv-registration-voters-container'>
