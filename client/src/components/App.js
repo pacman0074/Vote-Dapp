@@ -9,6 +9,7 @@ import RegistrationProposals from "./RegistrationProposals";
 import getRequireError from "../utils/getRequireError";
 import RegistrationProposalsOwnerPage from "./RegistrationProposalsOwnerPage";
 import UserPendingPage from "./UserPendingPage";
+import VotePage from "./VotePage";
 
 class App extends Component {
   state = { web3: null, accounts: null, contract: null, workflowStatus: -1, Owner : '' };
@@ -115,6 +116,12 @@ class App extends Component {
     });
   }
 
+  Vote = async(proposalId) => {
+    const {accounts, contract} = this.state
+    // L'élécteur vote
+    await contract.methods.Vote(proposalId).send({from : accounts[0]}, (err) => getRequireError(err))
+  }
+
 
   
  
@@ -149,6 +156,9 @@ class App extends Component {
         {/*Menu de l'administrateur lui permettant de déterminer l'enregistrement des propositions et de démarrer le vote*/}
         <RegistrationProposalsOwnerPage workflowStatus={workflowStatus} getRequireError={getRequireError} Owner={Owner} accounts={accounts}
         EndProposalsRegistration={this.EndProposalsRegistration} StartVoting={this.StartVoting}/>
+
+        {/*Page des élécteurs pour voter*/}
+        <VotePage Owner={Owner} accounts={accounts} workflowStatus={workflowStatus} contract={contract} Vote={this.Vote} />
       </div>
     );
   }
