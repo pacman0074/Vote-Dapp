@@ -7,9 +7,10 @@ import StartingPage from "./StartingPage";
 import RegistrationVoters from "./RegistrationVoters";
 import RegistrationProposals from "./RegistrationProposals";
 import getRequireError from "../utils/getRequireError";
-import RegistrationProposalsOwnerPage from "./RegistrationProposalsOwnerPage";
+import AdministrationWorkflow from "./AdministrationWorkflow";
 import UserPendingPage from "./UserPendingPage";
 import VotePage from "./VotePage";
+import ResultVotePage from "./ResultVotePage";
 
 class App extends Component {
   state = { web3: null, accounts: null, contract: null, workflowStatus: -1, Owner : '' };
@@ -32,11 +33,11 @@ class App extends Component {
      ); 
      instance.handleRevert = true;
      
+     // Récupérer le workflow courant
      const workflowStatus = await instance.methods.currentStatus().call();
-     // Mettre à jour le workflow courant
      const countVoter = await instance.methods.countVoter().call();
      const owner = await instance.methods.owner().call();
- 
+
      if(countVoter == 0){
        this.setState({ web3, accounts, contract: instance, workflowStatus: workflowStatus - 1 , Owner : owner});
  
@@ -58,56 +59,15 @@ class App extends Component {
     }
   };
 
-
-  getOwner = async() => {
-    const {contract} = this.state
-    await contract.methods.owner().call( (err, res) => {
-    if(!err){
-        this.Owner = res
-    }
-  })
-}
-
   startVotersRegistration = async() => {
-    // Mettre à jour le state 
-    this.setState({ workflowStatus: 0});
-    // Rafraichit la liste des élécteurs
-    //this.refreshWhitelist();
-    
-    
+    // Mettre à jour le statut du workflow 
+    this.setState({ workflowStatus: 0});  
   }
 
   startProposalsRegistration = async() => {
     const {accounts, contract} = this.state
     // commencer l'enregistrement des propositions
-    await contract.methods.StartProposalsRegistration().send({from : accounts[0]});
-    
-    // Mettre à jour le state sur le statut des workflows
-    await contract.methods.currentStatus().call( (err, res) => {
-      if(!err) {
-        this.setState({ workflowStatus: res})
-      }
-    });
-  }
-
-  EndProposalsRegistration = async() => {
-    const {accounts, contract} = this.state
-    // Arrêter l'enregistrement des propositions
-    await contract.methods.EndProposalsRegistration().send({from : accounts[0]})
-
-    // Mettre à jour le state sur le statut des workflows
-    await contract.methods.currentStatus().call( (err, res) => {
-      if(!err) {
-        this.setState({workflowStatus : res})
-      }
-    });
-  }
-
-  StartVoting = async() => {
-    const {accounts, contract} = this.state
-    //Commencer le vote
-    await contract.methods.StartVoting().send({from : accounts[0]})
-
+    await contract.methods.StartProposalsRegistration().send({from : accounts[0]}, (err) => getRequireError(err))
     // Mettre à jour le state sur le statut des workflows
     await contract.methods.currentStatus().call( (err, res) => {
       if(!err){
@@ -116,10 +76,61 @@ class App extends Component {
     });
   }
 
+  EndProposalsRegistration = async() => {
+    const {accounts, contract} = this.state
+    // Arrêter l'enregistrement des propositions
+    await contract.methods.EndProposalsRegistration().send({from : accounts[0]}, (err) => getRequireError(err))
+    // Mettre à jour le state sur le statut des workflows
+    await contract.methods.currentStatus().call( (err, res) => {
+      if(!err){
+        this.setState({workflowStatus : res})
+      }
+    });
+
+  }
+
+  StartVoting = async() => {
+    const {accounts, contract} = this.state
+    //Commencer le vote
+    await contract.methods.StartVoting().send({from : accounts[0]}, (err) => getRequireError(err))
+    // Mettre à jour le state sur le statut des workflows
+    await contract.methods.currentStatus().call( (err, res) => {
+      if(!err){
+        this.setState({workflowStatus : res})
+      }
+    });
+  }
+
+
   Vote = async(proposalId) => {
     const {accounts, contract} = this.state
     // L'élécteur vote
     await contract.methods.Vote(proposalId).send({from : accounts[0]}, (err) => getRequireError(err))
+  }
+
+
+  EndVoting = async() => {
+    const {accounts, contract} = this.state
+    // Arrêter le vote
+    await contract.methods.EndVoting().send({from : accounts[0]}, (err) => getRequireError(err))
+    // Mettre à jour le state sur le statut des workflows
+    await contract.methods.currentStatus().call( (err, res) => {
+      if(!err){
+        this.setState({workflowStatus : res})
+      }
+    });
+  }
+
+  countVotes = async() => {
+    const {accounts, contract} = this.state
+    // Déterminer la proposition gagnante
+    await contract.methods.countVotes().send({from : accounts[0]}, (err) => getRequireError(err))
+    // Mettre à jour le state sur le statut des workflows
+    await contract.methods.currentStatus().call( (err, res) => {
+      if(!err){
+        this.setState({workflowStatus : res})
+      }
+    });
   }
 
 
@@ -132,6 +143,10 @@ class App extends Component {
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
+
+    // Recharge la page quand on séléctionne un autre compte dans metamask
+    window.ethereum.on('accountsChanged', () => window.location.reload());
+
     return (
       <div className="App">
         <div>
@@ -154,11 +169,14 @@ class App extends Component {
         Owner={Owner} />
 
         {/*Menu de l'administrateur lui permettant de déterminer l'enregistrement des propositions et de démarrer le vote*/}
-        <RegistrationProposalsOwnerPage workflowStatus={workflowStatus} getRequireError={getRequireError} Owner={Owner} accounts={accounts}
-        EndProposalsRegistration={this.EndProposalsRegistration} StartVoting={this.StartVoting}/>
+        <AdministrationWorkflow workflowStatus={workflowStatus} getRequireError={getRequireError} Owner={Owner} accounts={accounts}
+        EndProposalsRegistration={this.EndProposalsRegistration} StartVoting={this.StartVoting} EndVoting={this.EndVoting} countVotes={this.countVotes}/>
 
         {/*Page des élécteurs pour voter*/}
         <VotePage Owner={Owner} accounts={accounts} workflowStatus={workflowStatus} contract={contract} Vote={this.Vote} />
+
+        {/*Page de résultat de l'éléction */}
+        <ResultVotePage workflowStatus={workflowStatus} accounts={accounts} contract={contract}/>
       </div>
     );
   }

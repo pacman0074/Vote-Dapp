@@ -12,7 +12,7 @@ export default function VotePage({workflowStatus, accounts, Owner, contract, Vot
         const countProposal = await contract.methods.countProposal().call()
         const tabProposal = []
         for (var i = 1; i <= countProposal; i++){
-            await contract.methods.proposalList(i).call((err,res) => {
+            await contract.methods.proposalList(i).call( (err,res) => {
                 if(!err)
                 tabProposal.push(res.description)
             })
@@ -23,19 +23,15 @@ export default function VotePage({workflowStatus, accounts, Owner, contract, Vot
     const handleChange = async (event) => {
         const {id} = event.target
         proposalId = id
-        console.log(id)
-        const proposal = await contract.methods.proposalList(id).call()
-        console.log(proposal.description)
-
     }
 
     useEffect( () => getProposalList(), [] )
+
     if(workflowStatus == 3  && accounts[0] !== Owner ){
         return(
             <div>
                 <Form>
-                {
-                proposalList.map( (proposal, index) => 
+                {proposalList.map( (proposal, index) => 
                     <Form.Check 
                     key={index}
                     inline
