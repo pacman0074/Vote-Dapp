@@ -24,6 +24,8 @@ contract ('Voting', function(accounts){
         this.VotingInstance = await Voting.new({from : owner}); 
     });
 
+    
+
     describe("Test StartProposalsRegistration", () => {
         it("verify if Proposals Registration has started", async function(){
             //Big number of registration voters & Proposals registration started status
